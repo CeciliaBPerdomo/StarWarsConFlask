@@ -78,6 +78,30 @@ def addUser():
     }
     return jsonify(response_body), 400
 
+# Modifica un usuario por id
+@app.route('/user/<int:user_id>', methods=['PUT'])
+def usersModif_porId(user_id):
+    usuario = User.query.filter_by(id=user_id).first()
+    body = json.loads(request.data)
+
+    if usuario is None:
+        response_body = {"msg": "No existe el usuario"}
+        return jsonify(response_body), 400    
+
+    if "email" in body:
+        usuario.email = body["email"]
+    if "name" in body:
+        usuario.name = body["name"]
+    if "lastname" in body:
+        usuario.lastname = body["lastname"]
+    if "username" in body:
+        usuario.username = body["username"]
+    
+    db.session.commit()
+    response_body = {"msg": "Usuario modificado"}
+    return jsonify(response_body), 400
+
+
 # Borra un usuario
 @app.route('/user/<int:user_id>', methods=['DELETE'])
 def deleteUser(user_id):
@@ -134,6 +158,22 @@ def addPlanets():
     }
     return jsonify(response_body), 400
 
+# Modifica un planeta por id
+@app.route('/planets/<int:planets_id>', methods=['PUT'])
+def planetsModif_porId(planets_id):
+    planeta = Planets.query.filter_by(id=planets_id).first()
+    body = json.loads(request.data)
+
+    if planeta is None:
+        response_body = {"msg": "No existe el planeta"}
+        return jsonify(response_body), 400    
+
+    if "name" in body:
+        planeta.name = body["name"]
+    db.session.commit()
+    response_body = {"msg": "Planeta modificado"}
+    return jsonify(response_body), 400
+
 # Borra un Planeta
 @app.route('/planets/<int:planet_id>', methods=['DELETE'])
 def deletePlanet(planet_id):
@@ -166,6 +206,24 @@ def characters_porId(characters_id):
     char = personaje.serialize()
     return jsonify(char), 200
 
+
+# Modifica un personaje por id
+@app.route('/characters/<int:characters_id>', methods=['PUT'])
+def charactersModif_porId(characters_id):
+    personaje = Characters.query.filter_by(id=characters_id).first()
+    body = json.loads(request.data)
+
+    if personaje is None:
+        response_body = {"msg": "No existe el personaje"}
+        return jsonify(response_body), 400    
+
+    if "name" in body:
+        personaje.name = body["name"]
+    if "lastName" in body:
+        personaje.lastname = body["lastName"]
+    db.session.commit()
+    response_body = {"msg": "Personaje modificado"}
+    return jsonify(response_body), 400
 
 # Alta de un personaje
 @app.route('/characters', methods=['POST'])
@@ -240,6 +298,111 @@ def deleteFavorite(fav_id):
     return jsonify(response_body), 200
 
 
+# Borra un determinado planeta de la lista de los favoritos
+@app.route('/favorite/planet/<int:user_id>/<int:planet_id>', methods=['DELETE'])
+def deleteFavoritePlanet(user_id, planet_id):
+    
+    # Controla que exista el usuario
+    favUser = Favorites.query.filter_by(id_user=user_id).first()
+    if favUser is None: 
+        response_body = {"msg": "Usuario no encontrado"}
+        return jsonify(response_body), 400
+
+     # Controla que exista el planeta
+    favId = Favorites.query.filter_by(id_planets=planet_id).first()
+    if favId is None: 
+        response_body = {"msg": "Planeta no encontrado"}
+        return jsonify(response_body), 400
+
+    #Borra el planeta segun el usuario
+    favorito = Favorites.query.filter_by(id_user=user_id).filter_by(id_planets=planet_id).first()
+#    print(favorito)
+
+    db.session.delete(favorito)
+    db.session.commit()
+   
+    response_body = {"msg": "Favorito borrado"}
+    return jsonify(response_body), 200
+
+# Borra un determinado personaje de la lista de los favoritos
+@app.route('/favorite/character/<int:user_id>/<int:characters_id>', methods=['DELETE'])
+def deleteFavoriteCharacter(user_id, characters_id):
+    
+    # Controla que exista el usuario
+    favUser = Favorites.query.filter_by(id_user=user_id).first()
+    if favUser is None: 
+        response_body = {"msg": "Usuario no encontrado"}
+        return jsonify(response_body), 400
+
+     # Controla que exista el personaje
+    favId = Favorites.query.filter_by(id_characters=characters_id).first()
+    if favId is None: 
+        response_body = {"msg": "Personaje no encontrado"}
+        return jsonify(response_body), 400
+
+    #Borra el planeta segun el usuario
+    favorito = Favorites.query.filter_by(id_user=user_id).filter_by(id_characters=characters_id).first()
+
+    db.session.delete(favorito)
+    db.session.commit()
+    response_body = {"msg": "Personaje favorito borrado"}
+    return jsonify(response_body), 200
+
+# Le agrega un nuevo planeta favorito a un usuario
+@app.route('/favorite/planet/<int:user_id>/<int:planet_id>', methods=['POST'])
+def add_FavoritePlanet(user_id, planet_id):
+
+    # Controla que exista el usuario
+    favUser = Favorites.query.filter_by(id_user=user_id).first()
+    if favUser:
+        # Controla que existan planetas
+        favId = Favorites.query.filter_by(id_planets=planet_id).first()
+        if favId: 
+            # Ya existe ese planeta para ese usuario
+            response_body = {"msg": "Planeta existente para ese usuario"}
+            return jsonify(response_body), 400
+        else: 
+            #Si no tiene ese planeta, lo agrega
+            new_Favorito = Favorites(id_user=user_id, id_planets=planet_id)
+        
+            db.session.add(new_Favorito)
+            db.session.commit()
+            
+            response_body = {"msg": "Favorito creado" }
+            return jsonify(response_body), 200
+    else:
+        # Ya existe ese planeta para ese usuario
+        response_body = {"msg": "No existe el usuario"}
+        return jsonify(response_body), 400
+
+# Le agrega un nuevo personaje favorito a un usuario
+@app.route('/favorite/character/<int:user_id>/<int:char_id>', methods=['POST'])
+def add_FavoriteChar(user_id, char_id):
+
+    # Controla que exista el usuario
+    favUser = Favorites.query.filter_by(id_user=user_id).first()
+    if favUser:
+        # Controla que exista el personaje
+        favId = Favorites.query.filter_by(id_characters=char_id).first()
+        if favId: 
+            # Ya existe ese personaje para ese usuario
+            response_body = {"msg": "Este personaje ya es favorito para ese usuario"}
+            return jsonify(response_body), 400
+        else: 
+            #Si no tiene ese personaje, lo agrega
+            new_Favorito = Favorites(id_user=user_id, id_characters=char_id)
+        
+            db.session.add(new_Favorito)
+            db.session.commit()
+            
+            response_body = {"msg": "Favorito creado" }
+            return jsonify(response_body), 200
+    else:
+        # Ya existe ese personaje para ese usuario
+        response_body = {"msg": "No existe el usuario"}
+        return jsonify(response_body), 400
+
+
 # Agrega un nuevo favorito
 @app.route('/favorite', methods=['POST'])
 def add_Favorites():
@@ -254,25 +417,49 @@ def add_Favorites():
     if existeUser: 
         if existePlanet:
             if existePers:
-                new_Favorito = Favorites(id_user=body["id_user"], 
-                id_planets=body["id_planets"], id_characters=body["id_characters"])
-            
-                db.session.add(new_Favorito)
-                db.session.commit()
+                # Chequea que exista ese usuario en la tabla de favoritos
+                userinFav = Favorites.query.filter_by(id_user=body["id_user"]).first()
+                # Si no existe crea el nuevo favorito con planeta y personaje
+                if userinFav is None:
+                    new_Favorito = Favorites(id_user=body["id_user"], 
+                    id_planets=body["id_planets"], id_characters=body["id_characters"])
                 
-                response_body = {
-                    "msg": "Favorito creado" 
-                }
-                return jsonify(response_body), 200
+                    db.session.add(new_Favorito)
+                    db.session.commit()
+                    
+                    response_body = {"msg": "Favorito creado"}
+                    return jsonify(response_body), 200
+                else: 
+                    #Si existe el usuario, chequea que no tenga ese planeta
+                    planetFav = Favorites.query.filter_by(id_planets=body["id_planets"]).first()
+                    #Si no encuentra ese planeta, chequea que no tenga ningun personaje
+                    if planetFav is None:
+                        persFav = Favorites.query.filter_by(id_characters=body["id_characters"]).first()
+                        # Si no encuentra ningun personaje, crea todo
+                        if persFav is None: 
+                            new_Favorito = Favorites(id_user=body["id_user"], 
+                            id_planets=body["id_planets"], id_characters=body["id_characters"])
+                
+                            db.session.add(new_Favorito)
+                            db.session.commit()
+                    
+                            response_body = {"msg": "Favorito creado"}
+                            return jsonify(response_body), 200
+                        else:
+                            #Modifica el planeta
+                            if "id_planets" in body:
+                                planetFav.id_planets = body["id_planets"]
+                            db.session.commit()
+                            response_body = {"msg": "Planeta modificado"}
             else: 
                 response_body = {"msg": "Personaje no creado"}
-                return jsonify(response_body), 200
+                return jsonify(response_body), 400
         else: 
             response_body = {"msg": "Planeta no creado"}
-            return jsonify(response_body), 200
+            return jsonify(response_body), 400
     else: 
         response_body = {"msg": "Usuario no creado"}
-        return jsonify(response_body), 200
+        return jsonify(response_body), 400
     #print(body["id_characters"])
    
     # Si se ingresa usuario y planeta solamente.
